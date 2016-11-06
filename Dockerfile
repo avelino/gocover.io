@@ -12,4 +12,4 @@ RUN go install -v
 
 EXPOSE 8080
 
-ENTRYPOINT ["cover.run"]
+ENTRYPOINT ["cover.run", "-r", "127.0.0.1:6379"]

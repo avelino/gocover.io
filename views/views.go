@@ -113,6 +113,7 @@ func HandleAbout(w http.ResponseWriter, r *http.Request) {
 
 func HandleHome(w http.ResponseWriter, r *http.Request) {
 	flag.Parse()
+	fmt.Println(*redisAddr)
 
 	pool, err := redis.NewPool("tcp", *redisAddr, *redisPass)
 	if err != nil {
@@ -180,6 +181,8 @@ func HandleRepo(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleDocker(w http.ResponseWriter, r *http.Request) {
+	flag.Parse()
+
 	pool, err := redis.NewPool("tcp", *redisAddr, *redisPass)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -190,6 +193,8 @@ func HandleDocker(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleCache(w http.ResponseWriter, r *http.Request) {
+	flag.Parse()
+
 	pool, err := redis.NewPool("tcp", *redisAddr, *redisPass)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -213,6 +218,8 @@ func HandleCache(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleBadge(w http.ResponseWriter, r *http.Request) {
+	flag.Parse()
+
 	pool, err := redis.NewPool("tcp", *redisAddr, *redisPass)
 	if err != nil {
 		log.Fatalf("%v", err)
