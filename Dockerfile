@@ -10,6 +10,6 @@ WORKDIR /go/src/github.com/avelino/cover.run
 RUN go get -d -v
 RUN go install -v
 
-EXPOSE 8080
+EXPOSE 3000
 
 ENTRYPOINT ["cover.run", "-r", "127.0.0.1:6379"]
