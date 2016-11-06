@@ -15,6 +15,16 @@ import (
 	"github.com/vieux/gocover.io/server/redis"
 )
 
+var (
+	docker_socket = flag.String("s", "/var/run/docker.sock", "Dockerd socket (e.g., /var/run/docker.sock)")
+	docker_addr   = flag.String("d", "", "Dockerd addr (e.g., 127.0.0.1:2375)")
+	serveAddr     = flag.String("p", ":8080", "Address and port to serve")
+	serveSAddr    = flag.String("ps", ":80443", "Address and port to serve HTTPS")
+	redisAddr     = flag.String("r", "127.0.0.1:6379", "redis address")
+	redisPass     = flag.String("rp", "", "redis password")
+	certPath      = flag.String("tls", "", "cert path")
+)
+
 func docker(repo, version string, pool *r.Pool) string {
 	var (
 		worker = "vieux/gocover"
@@ -37,7 +47,7 @@ func docker(repo, version string, pool *r.Pool) string {
 
 	host := ""
 
-	if *docker_socket != "" {
+	if *docker_socket != "/var/run/docker.sock" {
 		host = "unix://" + *docker_socket
 	} else if *docker_addr != "" {
 		host = "tcp://" + *docker_addr
@@ -94,16 +104,6 @@ func docker(repo, version string, pool *r.Pool) string {
 	return content
 }
 
-var (
-	docker_socket = flag.String("s", "", "Dockerd socket (e.g., /var/run/docker.sock)")
-	docker_addr   = flag.String("d", "", "Dockerd addr (e.g., 127.0.0.1:2375)")
-	serveAddr     = flag.String("p", ":8080", "Address and port to serve")
-	serveSAddr    = flag.String("ps", ":80443", "Address and port to serve HTTPS")
-	redisAddr     = flag.String("r", "127.0.0.1:6379", "redis address")
-	redisPass     = flag.String("rp", "", "redis password")
-	certPath      = flag.String("tls", "", "cert path")
-)
-
 func HandleAbout(w http.ResponseWriter, r *http.Request) {
 	Body := map[string]interface{}{"about_active": "active"}
 
@@ -113,7 +113,6 @@ func HandleAbout(w http.ResponseWriter, r *http.Request) {
 
 func HandleHome(w http.ResponseWriter, r *http.Request) {
 	flag.Parse()
-	fmt.Println(*redisAddr)
 
 	pool, err := redis.NewPool("tcp", *redisAddr, *redisPass)
 	if err != nil {
