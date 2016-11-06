@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	docker_socket = flag.String("s", "/var/run/docker.sock", "Dockerd socket (e.g., /var/run/docker.sock)")
+	docker_socket = flag.String("s", "", "Dockerd socket (e.g., /var/run/docker.sock)")
 	docker_addr   = flag.String("d", "", "Dockerd addr (e.g., 127.0.0.1:2375)")
 	serveAddr     = flag.String("p", ":8080", "Address and port to serve")
 	serveSAddr    = flag.String("ps", ":80443", "Address and port to serve HTTPS")
@@ -45,14 +45,12 @@ func docker(repo, version string, pool *r.Pool) string {
 		}
 	}
 
-	host := ""
+	host := "unix:///var/run/docker.sock"
 
-	if *docker_socket != "/var/run/docker.sock" {
+	if *docker_socket != "" {
 		host = "unix://" + *docker_socket
 	} else if *docker_addr != "" {
 		host = "tcp://" + *docker_addr
-	} else {
-		return "cannot connect to docker daemon"
 	}
 
 	out, err := exec.Command("docker", "-H", host, "run", "--rm", "-a", "stdout", "-a", "stderr", worker, repo).CombinedOutput()
@@ -188,7 +186,15 @@ func HandleDocker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo := r.RequestURI[1:len(r.RequestURI)]
-	w.Write([]byte(docker(repo, r.FormValue("version"), pool)))
+	version := r.FormValue("version")
+	if version == "" {
+		version = "1.7"
+	}
+	ret := docker(repo, version, pool)
+	if ret == "" {
+		ret = "Error"
+	}
+	w.Write([]byte(ret))
 }
 
 func HandleCache(w http.ResponseWriter, r *http.Request) {
