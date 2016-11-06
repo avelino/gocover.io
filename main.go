@@ -18,7 +18,7 @@ func main() {
 		http.StripPrefix("/assets", http.FileServer(http.Dir("./assets/"))))
 	r.HandleFunc("/_/{repo:.*}", views.HandleDocker)
 	r.HandleFunc("/_cache/{repo:.*}", views.HandleCache)
-	r.HandleFunc("/_badge/{repo:.*}", views.HandleCache)
+	r.HandleFunc("/_badge/{repo:.*}", views.HandleBadge)
 	r.HandleFunc("/{repo:.*}", views.HandleRepo)
 
 	n.UseHandler(r)

@@ -11,18 +11,18 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/avelino/cover.run/redis"
 	r "github.com/garyburd/redigo/redis"
-	"github.com/vieux/gocover.io/server/redis"
 )
 
 var (
-	docker_socket = flag.String("s", "", "Dockerd socket (e.g., /var/run/docker.sock)")
-	docker_addr   = flag.String("d", "", "Dockerd addr (e.g., 127.0.0.1:2375)")
-	serveAddr     = flag.String("p", ":8080", "Address and port to serve")
-	serveSAddr    = flag.String("ps", ":80443", "Address and port to serve HTTPS")
-	redisAddr     = flag.String("r", "127.0.0.1:6379", "redis address")
-	redisPass     = flag.String("rp", "", "redis password")
-	certPath      = flag.String("tls", "", "cert path")
+	dockerSocket = flag.String("s", "", "Dockerd socket (e.g., /var/run/docker.sock)")
+	dockerAddr   = flag.String("d", "", "Dockerd addr (e.g., 127.0.0.1:2375)")
+	serveAddr    = flag.String("p", ":8080", "Address and port to serve")
+	serveSAddr   = flag.String("ps", ":80443", "Address and port to serve HTTPS")
+	redisAddr    = flag.String("r", "127.0.0.1:6379", "redis address")
+	redisPass    = flag.String("rp", "", "redis password")
+	certPath     = flag.String("tls", "", "cert path")
 )
 
 func docker(repo, version string, pool *r.Pool) string {
@@ -47,13 +47,15 @@ func docker(repo, version string, pool *r.Pool) string {
 
 	host := "unix:///var/run/docker.sock"
 
-	if *docker_socket != "" {
-		host = "unix://" + *docker_socket
-	} else if *docker_addr != "" {
-		host = "tcp://" + *docker_addr
+	if *dockerSocket != "" {
+		host = "unix://" + *dockerSocket
+	} else if *dockerAddr != "" {
+		host = "tcp://" + *dockerAddr
 	}
 
+	fmt.Println(repo)
 	out, err := exec.Command("docker", "-H", host, "run", "--rm", "-a", "stdout", "-a", "stderr", worker, repo).CombinedOutput()
+	fmt.Println(string(out))
 	if err != nil {
 		if strings.Contains(string(out), "Unable to find image") {
 			return "go version '" + version + "' not found"
@@ -102,6 +104,7 @@ func docker(repo, version string, pool *r.Pool) string {
 	return content
 }
 
+// HandleAbout flat page about
 func HandleAbout(w http.ResponseWriter, r *http.Request) {
 	Body := map[string]interface{}{"about_active": "active"}
 
@@ -109,6 +112,8 @@ func HandleAbout(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, Body)
 }
 
+// HandleHome home page
+// get top process, get via redis
 func HandleHome(w http.ResponseWriter, r *http.Request) {
 	flag.Parse()
 
@@ -135,6 +140,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, Body)
 }
 
+// HandleRepo start process cover
 func HandleRepo(w http.ResponseWriter, r *http.Request) {
 	flag.Parse()
 
@@ -177,6 +183,7 @@ func HandleRepo(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, Body)
 }
 
+// HandleDocker up docker to testing runing
 func HandleDocker(w http.ResponseWriter, r *http.Request) {
 	flag.Parse()
 
@@ -185,7 +192,7 @@ func HandleDocker(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("%v", err)
 	}
 
-	repo := r.RequestURI[1:len(r.RequestURI)]
+	repo := strings.Split(r.RequestURI[3:len(r.RequestURI)], "?")[0]
 	version := r.FormValue("version")
 	if version == "" {
 		version = "1.7"
@@ -197,6 +204,7 @@ func HandleDocker(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(ret))
 }
 
+// HandleCache find object on cache (redis)
 func HandleCache(w http.ResponseWriter, r *http.Request) {
 	flag.Parse()
 
@@ -222,6 +230,7 @@ func HandleCache(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("No cached version of " + repo))
 }
 
+// HandleBadge shields.io image URL for amount coverage
 func HandleBadge(w http.ResponseWriter, r *http.Request) {
 	flag.Parse()
 
@@ -231,23 +240,23 @@ func HandleBadge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		repo      = r.RequestURI[1:len(r.RequestURI)]
-		conn      = pool.Get()
-		badge_url = ""
+		repo     = r.RequestURI[1:len(r.RequestURI)]
+		conn     = pool.Get()
+		badgeURL = ""
 	)
 	defer conn.Close()
 
 	if coverage, err := redis.GetCoverage(conn, repo); err != nil {
-		badge_url = fmt.Sprintf("https://img.shields.io/badge/coverage-error-lightgrey.svg?style=flat")
+		badgeURL = fmt.Sprintf("https://img.shields.io/badge/coverage-error-lightgrey.svg?style=flat")
 	} else if coverage < 25.0 {
-		badge_url = fmt.Sprintf("https://img.shields.io/badge/coverage-%.1f%%25-red.svg?style=flat", coverage)
+		badgeURL = fmt.Sprintf("https://img.shields.io/badge/coverage-%.1f%%25-red.svg?style=flat", coverage)
 	} else if coverage < 50.0 {
-		badge_url = fmt.Sprintf("https://img.shields.io/badge/coverage-%.1f%%25-orange.svg?style=flat", coverage)
+		badgeURL = fmt.Sprintf("https://img.shields.io/badge/coverage-%.1f%%25-orange.svg?style=flat", coverage)
 	} else if coverage < 75.0 {
-		badge_url = fmt.Sprintf("https://img.shields.io/badge/coverage-%.1f%%25-green.svg?style=flat", coverage)
+		badgeURL = fmt.Sprintf("https://img.shields.io/badge/coverage-%.1f%%25-green.svg?style=flat", coverage)
 	} else {
-		badge_url = fmt.Sprintf("https://img.shields.io/badge/coverage-%.1f%%25-brightgreen.svg?style=flat", coverage)
+		badgeURL = fmt.Sprintf("https://img.shields.io/badge/coverage-%.1f%%25-brightgreen.svg?style=flat", coverage)
 	}
 
-	http.Redirect(w, r, badge_url, 301)
+	http.Redirect(w, r, badgeURL, 301)
 }
