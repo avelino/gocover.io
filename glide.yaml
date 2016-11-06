@@ -1,0 +1,6 @@
+package: github.com/avelino/cover.run
+import:
+- package: github.com/garyburd/redigo
+  version: ~1.0.0
+  subpackages:
+  - redis
