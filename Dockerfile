@@ -12,4 +12,4 @@ RUN go install -v
 
 EXPOSE 3000
 
-ENTRYPOINT ["cover.run", "-r", "127.0.0.1:6379"]
+ENTRYPOINT ["cover.run", "-r", "redis:6379"]
